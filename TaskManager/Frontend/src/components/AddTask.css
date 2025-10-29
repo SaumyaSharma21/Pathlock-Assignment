@@ -68,6 +68,11 @@
   transform: translateY(1px);
 }
 
+.add-task-form input:focus,
+.add-task-form textarea:focus {
+  outline: none;
+}
+
 @media (max-width: 540px) {
   .add-task-form {
     flex-direction: column;

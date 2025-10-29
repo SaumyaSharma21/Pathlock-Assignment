@@ -356,6 +356,7 @@
   text-transform: capitalize;
   font-weight: 600;
   color: #046fa9;
+  cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.25s ease, background-color 0.2s ease;
 }
 
@@ -378,6 +379,7 @@
   color: #b91c1c;
   font-weight: 600;
   padding: 0.6rem 1.4rem;
+  cursor: pointer;
   box-shadow: 0 14px 26px rgba(239, 68, 68, 0.18);
   transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }

@@ -17,14 +17,18 @@ export default function AddTask({ onAdd }: AddTaskProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="add-task-form">
-      <input
-        type="text"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        placeholder="Enter a new task..."
-        className="task-input"
-      />
+    <form onSubmit={handleSubmit} className="add-task-form" aria-label="Add new task">
+      <div className="input-wrapper">
+        <span aria-hidden className="input-icon">✏️</span>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What would you like to get done?"
+          className="task-input"
+          aria-label="Task description"
+        />
+      </div>
       <button type="submit" className="add-btn">
         Add Task
       </button>

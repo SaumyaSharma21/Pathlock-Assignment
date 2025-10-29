@@ -1,14 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { TaskItem } from './types/interfaces';
 import { taskService } from './services/taskService';
 import AddTask from './components/AddTask';
 import TaskList from './components/TaskList';
 import './App.css';
 
+type Filter = 'all' | 'active' | 'completed';
+
 function App() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<Filter>('all');
 
   // Fetch tasks on component mount
   useEffect(() => {
@@ -33,7 +36,7 @@ function App() {
     try {
       setError(null);
       const newTask = await taskService.createTask({ description });
-      setTasks([newTask, ...tasks]);
+      setTasks((prev) => [newTask, ...prev]);
     } catch (err) {
       setError('Failed to add task.');
       console.error('Error adding task:', err);
@@ -44,7 +47,7 @@ function App() {
     try {
       setError(null);
       const updatedTask = await taskService.toggleTask(id);
-      setTasks(tasks.map(task => task.id === id ? updatedTask : task));
+      setTasks((prev) => prev.map(task => task.id === id ? updatedTask : task));
     } catch (err) {
       setError('Failed to update task.');
       console.error('Error toggling task:', err);
@@ -55,42 +58,108 @@ function App() {
     try {
       setError(null);
       await taskService.deleteTask(id);
-      setTasks(tasks.filter(task => task.id !== id));
+      setTasks((prev) => prev.filter(task => task.id !== id));
     } catch (err) {
       setError('Failed to delete task.');
       console.error('Error deleting task:', err);
     }
   };
 
+  const filteredTasks = useMemo(() => {
+    switch (activeFilter) {
+      case 'active':
+        return tasks.filter((task) => !task.completed);
+      case 'completed':
+        return tasks.filter((task) => task.completed);
+      default:
+        return tasks;
+    }
+  }, [tasks, activeFilter]);
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((task) => task.completed).length;
+  const hasTasks = totalTasks > 0;
+
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>📝 Task Manager</h1>
-        <p>Stay organized and productive</p>
+    <div className="app-shell">
+      <header className="hero">
+        <div className="hero-content">
+          <h1>Task Manager</h1>
+          <p>Capture, organize, and celebrate your progress.</p>
+        </div>
       </header>
 
-      <main className="app-main">
-        {error && (
-          <div className="error-message">
-            {error}
+      <main className="dashboard">
+        <section className="panel">
+          <div className="panel-header">
+            <h2>Your tasks</h2>
+            <button type="button" className="refresh-btn" onClick={fetchTasks}>
+              Refresh
+            </button>
           </div>
-        )}
 
-        <AddTask onAdd={handleAddTask} />
+          {error && (
+            <div className="banner banner-error" role="alert">
+              {error}
+            </div>
+          )}
 
-        {loading ? (
-          <p className="loading">Loading tasks...</p>
-        ) : (
-          <TaskList 
-            tasks={tasks} 
-            onToggle={handleToggleTask} 
-            onDelete={handleDeleteTask} 
-          />
-        )}
+          <AddTask onAdd={handleAddTask} />
+
+          <div className="status-bar" aria-live="polite">
+            <div className="status-pill">
+              <span className="status-count">{totalTasks}</span>
+              Total
+            </div>
+            <div className="status-pill">
+              <span className="status-count">{completedTasks}</span>
+              Completed
+            </div>
+            <div className="status-pill">
+              <span className="status-count">{totalTasks - completedTasks}</span>
+              Active
+            </div>
+          </div>
+
+          {hasTasks && (
+            <div className="filter-chips" role="tablist" aria-label="Filter tasks">
+              {(['all', 'active', 'completed'] as Filter[]).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === filter}
+                  className={`filter-chip ${activeFilter === filter ? 'is-active' : ''}`}
+                  onClick={() => setActiveFilter(filter)}
+                >
+                  {filter === 'all' ? 'All' : filter === 'active' ? 'Active' : 'Completed'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <section className="tasks-section">
+            {loading ? (
+              <div className="loading-card">Loading tasks...</div>
+            ) : filteredTasks.length > 0 ? (
+              <TaskList tasks={filteredTasks} onToggle={handleToggleTask} onDelete={handleDeleteTask} />
+            ) : hasTasks ? (
+              <div className="empty-state">
+                <h3>No tasks match this filter</h3>
+                <p>Try switching filters or create something new.</p>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <h3>Welcome! Ready to be productive?</h3>
+                <p>Add your first task to get started.</p>
+              </div>
+            )}
+          </section>
+        </section>
       </main>
 
       <footer className="app-footer">
-        <p>Total: {tasks.length} | Completed: {tasks.filter(t => t.completed).length}</p>
+        <p>Made with care · Stay on top of your day</p>
       </footer>
     </div>
   );

@@ -2,71 +2,107 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .task-item {
   display: flex;
+  align-items: stretch;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  gap: 1rem;
+  padding: 1.05rem 1.25rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(248, 250, 255, 0.92), rgba(239, 246, 255, 0.92));
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .task-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(59, 130, 246, 0.18);
 }
 
 .task-item.completed {
-  opacity: 0.7;
-  background: #f5f5f5;
+  background: linear-gradient(135deg, rgba(220, 252, 231, 0.92), rgba(209, 250, 229, 0.92));
+  border-color: rgba(16, 185, 129, 0.28);
 }
 
 .task-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
   flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1rem;
 }
 
 .task-checkbox {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid rgba(99, 102, 241, 0.55);
   cursor: pointer;
+  accent-color: #6366f1;
+}
+
+.task-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 .task-description {
-  font-size: 1rem;
-  color: #333;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.task-meta {
+  font-size: 0.85rem;
+  color: #64748b;
 }
 
 .task-item.completed .task-description {
   text-decoration: line-through;
-  color: #999;
+  color: #047857;
+}
+
+.task-item.completed .task-meta {
+  color: #10b981;
 }
 
 .delete-btn {
-  background: none;
   border: none;
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  background: rgba(248, 113, 113, 0.16);
+  color: #b91c1c;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
 .delete-btn:hover {
-  background-color: #ffebee;
+  background: rgba(248, 113, 113, 0.3);
+  transform: scale(1.05);
 }
 
-.no-tasks {
-  text-align: center;
-  color: #999;
-  font-style: italic;
-  padding: 2rem;
+.delete-btn span {
+  line-height: 1;
+}
+
+@media (max-width: 540px) {
+  .task-item {
+    padding: 1rem;
+  }
+
+  .task-content {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+  }
 }

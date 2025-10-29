@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import type { TaskItem } from './types/interfaces';
 import { taskService } from './services/taskService';
 import AddTask from './components/AddTask';
@@ -32,41 +32,41 @@ const saveTasksToStorage = (tasks: TaskItem[]) => {
 };
 
 function App() {
-  const [tasks, setTasks] = useState<TaskItem[]>(() => loadTasksFromStorage());
-  const [loading, setLoading] = useState(() => loadTasksFromStorage().length === 0);
+  const cachedTasks = useMemo(() => loadTasksFromStorage(), []);
+  const hasCachedTasks = cachedTasks.length > 0;
+
+  const [tasks, setTasks] = useState<TaskItem[]>(cachedTasks);
+  const [loading, setLoading] = useState(!hasCachedTasks);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<Filter>('all');
   const [isClearing, setIsClearing] = useState(false);
 
-  // Fetch tasks on component mount
-  useEffect(() => {
-    if (tasks.length > 0) {
-      setLoading(false);
-    }
-    fetchTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const fetchTasks = useCallback(
+    async ({ showSpinner = true }: { showSpinner?: boolean } = {}) => {
+      try {
+        if (showSpinner) {
+          setLoading(true);
+        }
+        setError(null);
+        const data = await taskService.getAllTasks();
+        setTasks(data);
+      } catch (err) {
+        setError('Failed to fetch tasks. Make sure the backend is running.');
+        console.error('Error fetching tasks:', err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
-  // Persist tasks whenever they change
   useEffect(() => {
     saveTasksToStorage(tasks);
   }, [tasks]);
 
-  const fetchTasks = async () => {
-    try {
-      if (tasks.length === 0) {
-        setLoading(true);
-      }
-      setError(null);
-      const data = await taskService.getAllTasks();
-      setTasks(data);
-    } catch (err) {
-      setError('Failed to fetch tasks. Make sure the backend is running.');
-      console.error('Error fetching tasks:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchTasks({ showSpinner: !hasCachedTasks });
+  }, [fetchTasks, hasCachedTasks]);
 
   const handleAddTask = async (description: string) => {
     try {
@@ -120,6 +120,38 @@ function App() {
   const hasTasks = totalTasks > 0;
   const activeCount = totalTasks - completedCount;
   const hasCompleted = completedCount > 0;
+  const completionRate = useMemo(() => (
+    totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100)
+  ), [totalTasks, completedCount]);
+
+  const headerMessage = hasTasks
+    ? activeCount === 0
+      ? 'All caught up, enjoy the momentum.'
+      : `Focus on ${activeCount} open ${activeCount === 1 ? 'task' : 'tasks'} today.`
+    : 'Set your priorities to start strong.';
+
+  const nextActionCopy = useMemo(() => {
+    if (!hasTasks) {
+      return 'Create your first task to start tracking progress.';
+    }
+    if (activeCount === 0) {
+      return 'All tasks are complete. Keep the streak going!';
+    }
+    return `Focus on ${activeCount === 1 ? 'the remaining task' : `${activeCount} open tasks`} today.`;
+  }, [hasTasks, activeCount]);
+
+  const goalCopy = useMemo(() => {
+    if (!hasTasks) {
+      return 'Capture at least three starter items for today.';
+    }
+    return completionRate >= 80
+      ? 'Excellent momentum, aim to maintain the pace.'
+      : 'Aim for at least 80% completion.';
+  }, [hasTasks, completionRate]);
+
+  const rateCopy = hasTasks
+    ? `Completion rate: ${completionRate}%`
+    : 'Completion rate will appear once tasks are added.';
 
   const handleClearCompleted = async () => {
     const completedTasks = tasks.filter((task) => task.completed);
@@ -142,54 +174,85 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="hero">
-        <div className="hero-content">
-          <h1>Task Manager</h1>
-          <p>Capture, organize, and celebrate your progress.</p>
-        </div>
-      </header>
-
-      <main className="dashboard">
-        <section className="panel">
-          <div className="panel-header">
-            <div className="panel-title">
-              <h2>Your tasks</h2>
-              <span>
-                {hasTasks
-                  ? `${activeCount} to go • ${completedCount} done`
-                  : 'No tasks yet — let’s create your plan'}
-              </span>
-            </div>
-            <button type="button" className="refresh-btn" onClick={fetchTasks}>
-              Refresh
-            </button>
-          </div>
-
-          {error && (
-            <div className="banner banner-error" role="alert">
-              {error}
-            </div>
-          )}
-
-          <AddTask onAdd={handleAddTask} />
-
-          <div className="status-bar" aria-live="polite">
-            <div className="status-pill">
-              <span className="status-count">{totalTasks}</span>
-              Total
-            </div>
-            <div className="status-pill">
-              <span className="status-count">{completedCount}</span>
-              Completed
-            </div>
-            <div className="status-pill">
-              <span className="status-count">{activeCount}</span>
-              Active
+      <div className="app-frame">
+        <header className="app-header">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">TM</span>
+            <div className="brand-copy">
+              <h1>Task Manager</h1>
+              <p>Your productivity dashboard</p>
             </div>
           </div>
+          <div className="header-summary" aria-live="polite">
+            <span className="summary-copy">{headerMessage}</span>
+          </div>
+        </header>
 
-          {hasTasks && (
-            <div className="toolbar" role="toolbar" aria-label="Task filters and actions">
+        <main className="main-grid">
+          <section className="overview-card">
+            <div className="overview-hero">
+              <h2>Plan your day</h2>
+              <p>Review priorities, track momentum, and keep the team aligned.</p>
+            </div>
+
+            <div className="metrics-grid" role="list">
+              <article className="metric-card" role="listitem">
+                <span className="metric-label">Total tasks</span>
+                <span className="metric-value">{totalTasks}</span>
+                <span className="metric-footnote">{completedCount} completed overall</span>
+              </article>
+              <article className="metric-card metric-card--secondary" role="listitem">
+                <span className="metric-label">Active</span>
+                <span className="metric-value">{activeCount}</span>
+                <span className="metric-footnote">
+                  {hasTasks ? 'Keep the momentum moving' : 'Start by adding tasks'}
+                </span>
+              </article>
+              <article className="metric-card metric-card--accent" role="listitem">
+                <span className="metric-label">Completion</span>
+                <span className="metric-value">{completionRate}%</span>
+                <span className="metric-footnote">
+                  {hasTasks ? `${completedCount} done` : 'Track progress instantly'}
+                </span>
+              </article>
+            </div>
+
+            <ul className="insights-list">
+              <li>{nextActionCopy}</li>
+              <li>{goalCopy}</li>
+              <li>{rateCopy}</li>
+            </ul>
+          </section>
+
+          <section className="tasks-card">
+            <div className="tasks-header">
+              <div className="tasks-title">
+                <h2>Workboard</h2>
+                <span>
+                  {hasTasks
+                    ? `${activeCount} open · ${completedCount} done`
+                    : "No tasks yet, let's create your plan"}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="refresh-btn"
+                onClick={() => fetchTasks({ showSpinner: true })}
+                disabled={loading}
+              >
+                {loading ? 'Refreshing…' : 'Refresh'}
+              </button>
+            </div>
+
+            {error && (
+              <div className="banner banner-error" role="alert">
+                {error}
+              </div>
+            )}
+
+            <AddTask onAdd={handleAddTask} />
+
+            <div className="task-toolbar" role="toolbar" aria-label="Task filters and actions">
               <div className="filter-chips" role="tablist" aria-label="Filter tasks">
                 {(['all', 'active', 'completed'] as Filter[]).map((filter) => (
                   <button
@@ -210,34 +273,34 @@ function App() {
                 onClick={handleClearCompleted}
                 disabled={!hasCompleted || isClearing}
               >
-                {isClearing ? 'Clearing…' : 'Clear completed'}
+                {isClearing ? 'Clearing...' : 'Clear completed'}
               </button>
             </div>
-          )}
 
-          <section className="tasks-section">
-            {loading ? (
-              <div className="loading-card">Loading tasks...</div>
-            ) : filteredTasks.length > 0 ? (
-              <TaskList tasks={filteredTasks} onToggle={handleToggleTask} onDelete={handleDeleteTask} />
-            ) : hasTasks ? (
-              <div className="empty-state">
-                <h3>No tasks match this filter</h3>
-                <p>Try switching filters or create something new.</p>
-              </div>
-            ) : (
-              <div className="empty-state">
-                <h3>Welcome! Ready to be productive?</h3>
-                <p>Add your first task to get started.</p>
-              </div>
-            )}
+            <section className="tasks-section">
+              {loading ? (
+                <div className="loading-card">Loading tasks...</div>
+              ) : filteredTasks.length > 0 ? (
+                <TaskList tasks={filteredTasks} onToggle={handleToggleTask} onDelete={handleDeleteTask} />
+              ) : hasTasks ? (
+                <div className="empty-state">
+                  <h3>No tasks match this filter</h3>
+                  <p>Try switching filters or create something new.</p>
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <h3>Welcome! Ready to be productive?</h3>
+                  <p>Add your first task to get started.</p>
+                </div>
+              )}
+            </section>
           </section>
-        </section>
-      </main>
+        </main>
 
-      <footer className="app-footer">
-        <p>Made with care · Stay on top of your day</p>
-      </footer>
+        <footer className="app-footer">
+          <p>Made with care · Stay on top of your day</p>
+        </footer>
+      </div>
     </div>
   );
 }

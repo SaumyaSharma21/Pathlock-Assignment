@@ -1,29 +1,34 @@
 import axios from 'axios';
 import type { TaskItem, CreateTaskDto } from '../types/interfaces';
 
-const API_URL = 'http://localhost:5000/api/tasks';
+const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+const TASKS_ENDPOINT = '/api/tasks';
+
+const client = axios.create({
+  baseURL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 export const taskService = {
-  // Get all tasks
   getAllTasks: async (): Promise<TaskItem[]> => {
-    const response = await axios.get<TaskItem[]>(API_URL);
+    const response = await client.get<TaskItem[]>(TASKS_ENDPOINT);
     return response.data;
   },
 
-  // Create a new task
   createTask: async (taskDto: CreateTaskDto): Promise<TaskItem> => {
-    const response = await axios.post<TaskItem>(API_URL, taskDto);
+    const response = await client.post<TaskItem>(TASKS_ENDPOINT, taskDto);
     return response.data;
   },
 
-  // Toggle task completion status
   toggleTask: async (id: string): Promise<TaskItem> => {
-    const response = await axios.patch<TaskItem>(`${API_URL}/${id}/toggle`);
+    const response = await client.patch<TaskItem>(`${TASKS_ENDPOINT}/${id}/toggle`);
     return response.data;
   },
 
-  // Delete a task
   deleteTask: async (id: string): Promise<void> => {
-    await axios.delete(`${API_URL}/${id}`);
+    await client.delete(`${TASKS_ENDPOINT}/${id}`);
   },
 };

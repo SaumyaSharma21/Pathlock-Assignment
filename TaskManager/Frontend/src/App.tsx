@@ -152,7 +152,14 @@ function App() {
       <main className="dashboard">
         <section className="panel">
           <div className="panel-header">
-            <h2>Your tasks</h2>
+            <div className="panel-title">
+              <h2>Your tasks</h2>
+              <span>
+                {hasTasks
+                  ? `${activeCount} to go • ${completedCount} done`
+                  : 'No tasks yet — let’s create your plan'}
+              </span>
+            </div>
             <button type="button" className="refresh-btn" onClick={fetchTasks}>
               Refresh
             </button>

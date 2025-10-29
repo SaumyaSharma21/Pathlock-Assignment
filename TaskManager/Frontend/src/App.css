@@ -124,9 +124,9 @@
 
 .main-grid {
   display: grid;
-  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 0.38fr) minmax(0, 0.62fr);
   gap: clamp(1.5rem, 3.5vw, 2.75rem);
-  align-items: start;
+  align-items: stretch;
 }
 
 .overview-card {
@@ -206,6 +206,11 @@
   border-color: rgba(46, 212, 122, 0.28);
 }
 
+.metric-card--focus {
+  background: linear-gradient(160deg, rgba(11, 18, 63, 0.1), rgba(4, 111, 169, 0.08));
+  border-color: rgba(11, 18, 63, 0.18);
+}
+
 .metric-label {
   font-size: 0.85rem;
   text-transform: uppercase;
@@ -220,9 +225,18 @@
   line-height: 1.1;
 }
 
+.metric-value--small {
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+}
+
 .metric-footnote {
   font-size: 0.9rem;
   color: rgba(16, 24, 89, 0.68);
+}
+
+.metric-footnote--emphasis {
+  color: rgba(11, 18, 63, 0.82);
+  font-weight: 600;
 }
 
 .insights-list {
@@ -262,6 +276,7 @@
   display: flex;
   flex-direction: column;
   gap: clamp(1.2rem, 2.5vw, 1.75rem);
+  min-height: 100%;
 }
 
 .tasks-header {
@@ -390,8 +405,10 @@
   color: #046fa9;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
   align-items: center;
+  justify-content: center;
+  min-height: clamp(220px, 30vh, 280px);
 }
 
 .empty-state h3 {
@@ -424,6 +441,7 @@
 
   .main-grid {
     grid-template-columns: 1fr;
+    gap: clamp(1.25rem, 4vw, 2rem);
   }
 
   .header-summary {
@@ -452,6 +470,10 @@
 
   .summary-copy {
     width: 100%;
+  }
+
+  .tasks-card {
+    min-height: auto;
   }
 
   .task-toolbar {

@@ -153,6 +153,8 @@ function App() {
     ? `Completion rate: ${completionRate}%`
     : 'Completion rate will appear once tasks are added.';
 
+  const goalTarget = '80%';
+
   const handleClearCompleted = async () => {
     const completedTasks = tasks.filter((task) => task.completed);
     if (completedTasks.length === 0) return;
@@ -214,6 +216,11 @@ function App() {
                 <span className="metric-footnote">
                   {hasTasks ? `${completedCount} done` : 'Track progress instantly'}
                 </span>
+              </article>
+              <article className="metric-card metric-card--focus" role="listitem">
+                <span className="metric-label">Goal</span>
+                <span className="metric-value metric-value--small">{goalTarget}</span>
+                <span className="metric-footnote metric-footnote--emphasis">{goalCopy}</span>
               </article>
             </div>
 

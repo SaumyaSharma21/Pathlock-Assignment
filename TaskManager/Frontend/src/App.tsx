@@ -6,21 +6,57 @@ import TaskList from './components/TaskList';
 import './App.css';
 
 type Filter = 'all' | 'active' | 'completed';
+const STORAGE_KEY = 'task-manager.tasks.v1';
+
+const loadTasksFromStorage = (): TaskItem[] => {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: TaskItem[] = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
+  } catch (error) {
+    console.warn('Unable to parse cached tasks', error);
+    return [];
+  }
+};
+
+const saveTasksToStorage = (tasks: TaskItem[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  } catch (error) {
+    console.warn('Unable to persist tasks', error);
+  }
+};
 
 function App() {
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<TaskItem[]>(() => loadTasksFromStorage());
+  const [loading, setLoading] = useState(() => loadTasksFromStorage().length === 0);
   const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<Filter>('all');
+  const [isClearing, setIsClearing] = useState(false);
 
   // Fetch tasks on component mount
   useEffect(() => {
+    if (tasks.length > 0) {
+      setLoading(false);
+    }
     fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist tasks whenever they change
+  useEffect(() => {
+    saveTasksToStorage(tasks);
+  }, [tasks]);
 
   const fetchTasks = async () => {
     try {
-      setLoading(true);
+      if (tasks.length === 0) {
+        setLoading(true);
+      }
       setError(null);
       const data = await taskService.getAllTasks();
       setTasks(data);
@@ -77,8 +113,32 @@ function App() {
   }, [tasks, activeFilter]);
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((task) => task.completed).length;
+  const completedCount = useMemo(
+    () => tasks.filter((task) => task.completed).length,
+    [tasks]
+  );
   const hasTasks = totalTasks > 0;
+  const activeCount = totalTasks - completedCount;
+  const hasCompleted = completedCount > 0;
+
+  const handleClearCompleted = async () => {
+    const completedTasks = tasks.filter((task) => task.completed);
+    if (completedTasks.length === 0) return;
+
+    try {
+      setIsClearing(true);
+      setError(null);
+      await Promise.all(
+        completedTasks.map((task) => taskService.deleteTask(task.id))
+      );
+      setTasks((prev) => prev.filter((task) => !task.completed));
+    } catch (err) {
+      setError('Failed to clear completed tasks.');
+      console.error('Error clearing completed tasks:', err);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   return (
     <div className="app-shell">
@@ -112,29 +172,39 @@ function App() {
               Total
             </div>
             <div className="status-pill">
-              <span className="status-count">{completedTasks}</span>
+              <span className="status-count">{completedCount}</span>
               Completed
             </div>
             <div className="status-pill">
-              <span className="status-count">{totalTasks - completedTasks}</span>
+              <span className="status-count">{activeCount}</span>
               Active
             </div>
           </div>
 
           {hasTasks && (
-            <div className="filter-chips" role="tablist" aria-label="Filter tasks">
-              {(['all', 'active', 'completed'] as Filter[]).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeFilter === filter}
-                  className={`filter-chip ${activeFilter === filter ? 'is-active' : ''}`}
-                  onClick={() => setActiveFilter(filter)}
-                >
-                  {filter === 'all' ? 'All' : filter === 'active' ? 'Active' : 'Completed'}
-                </button>
-              ))}
+            <div className="toolbar" role="toolbar" aria-label="Task filters and actions">
+              <div className="filter-chips" role="tablist" aria-label="Filter tasks">
+                {(['all', 'active', 'completed'] as Filter[]).map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeFilter === filter}
+                    className={`filter-chip ${activeFilter === filter ? 'is-active' : ''}`}
+                    onClick={() => setActiveFilter(filter)}
+                  >
+                    {filter === 'all' ? 'All' : filter === 'active' ? 'Active' : 'Completed'}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="clear-completed-btn"
+                onClick={handleClearCompleted}
+                disabled={!hasCompleted || isClearing}
+              >
+                {isClearing ? 'Clearing…' : 'Clear completed'}
+              </button>
             </div>
           )}
 

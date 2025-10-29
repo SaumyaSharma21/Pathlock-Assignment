@@ -211,6 +211,20 @@
   border-color: rgba(11, 18, 63, 0.18);
 }
 
+.metric-card--focus-complete {
+  background: linear-gradient(160deg, rgba(46, 212, 122, 0.22), rgba(4, 111, 169, 0.16));
+  border-color: rgba(46, 212, 122, 0.35);
+  box-shadow: 0 22px 40px rgba(46, 212, 122, 0.18);
+}
+
+.metric-card--focus-complete .metric-value {
+  color: #1f9c56;
+}
+
+.metric-card--focus-complete .metric-footnote--emphasis {
+  color: rgba(31, 156, 86, 0.85);
+}
+
 .metric-label {
   font-size: 0.85rem;
   text-transform: uppercase;

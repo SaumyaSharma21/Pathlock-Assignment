@@ -124,6 +124,15 @@ function App() {
     totalTasks === 0 ? 0 : Math.round((completedCount / totalTasks) * 100)
   ), [totalTasks, completedCount]);
 
+  const goalTarget = useMemo(() => {
+    if (!hasTasks) return 40;
+    if (completionRate >= 100) return 100;
+    const nextMilestone = Math.ceil((completionRate + 10) / 10) * 10;
+    return Math.max(40, Math.min(100, nextMilestone));
+  }, [hasTasks, completionRate]);
+
+  const goalComplete = hasTasks && completionRate === 100;
+
   const headerMessage = hasTasks
     ? activeCount === 0
       ? 'All caught up, enjoy the momentum.'
@@ -144,16 +153,22 @@ function App() {
     if (!hasTasks) {
       return 'Capture at least three starter items for today.';
     }
-    return completionRate >= 80
-      ? 'Excellent momentum, aim to maintain the pace.'
-      : 'Aim for at least 80% completion.';
-  }, [hasTasks, completionRate]);
+    if (goalComplete) {
+      return 'All tasks complete. Celebrate the win!';
+    }
+    if (completionRate >= goalTarget) {
+      return 'Excellent momentum, aim to maintain the pace.';
+    }
+    return `Aim for ${goalTarget}% completion.`;
+  }, [hasTasks, completionRate, goalTarget, goalComplete]);
 
   const rateCopy = hasTasks
-    ? `Completion rate: ${completionRate}%`
+    ? goalComplete
+      ? 'Completion rate: 100% · Outstanding!'
+      : `Completion rate: ${completionRate}%`
     : 'Completion rate will appear once tasks are added.';
 
-  const goalTarget = '80%';
+  const goalTargetLabel = goalComplete ? '100%' : `${goalTarget}%`;
 
   const handleClearCompleted = async () => {
     const completedTasks = tasks.filter((task) => task.completed);
@@ -217,9 +232,12 @@ function App() {
                   {hasTasks ? `${completedCount} done` : 'Track progress instantly'}
                 </span>
               </article>
-              <article className="metric-card metric-card--focus" role="listitem">
+              <article
+                className={`metric-card metric-card--focus${goalComplete ? ' metric-card--focus-complete' : ''}`}
+                role="listitem"
+              >
                 <span className="metric-label">Goal</span>
-                <span className="metric-value metric-value--small">{goalTarget}</span>
+                <span className="metric-value metric-value--small">{goalTargetLabel}</span>
                 <span className="metric-footnote metric-footnote--emphasis">{goalCopy}</span>
               </article>
             </div>

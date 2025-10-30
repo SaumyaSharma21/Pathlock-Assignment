@@ -21,7 +21,7 @@ interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: 'NotStarted' | 'InProgress' | 'Completed';
+  status: 'Todo' | 'InProgress' | 'Done';
   dueDate?: string;
   assignedToUserId?: string;
   createdAt?: string;
@@ -95,7 +95,7 @@ const ProjectDetail = () => {
         toast.error("Task not found");
         return;
       }
-      const newStatus = status === "Completed" ? "NotStarted" : "Completed";
+      const newStatus = status === "Done" ? "Todo" : "Done";
       await TasksAPI.updateTask(taskId, {
         title: originalTask.title,
         description: originalTask.description || "",
@@ -104,7 +104,7 @@ const ProjectDetail = () => {
         assignedToUserId: originalTask.assignedToUserId || undefined,
       });
       setTasks(tasks.map(task => task.id === taskId ? { ...task, status: newStatus } : task));
-      toast.success(newStatus === "Completed" ? "Task completed!" : "Task marked as incomplete");
+      toast.success(newStatus === "Done" ? "Task completed!" : "Task marked as incomplete");
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.message || "Failed to update task");
     }
@@ -138,7 +138,7 @@ const ProjectDetail = () => {
       await TasksAPI.updateTask(taskId, {
         title: editTitle,
         description: editDescription,
-        status: originalTask?.status || "NotStarted",
+        status: originalTask?.status || "Todo",
         dueDate: originalTask?.dueDate || new Date().toISOString(),
   assignedToUserId: originalTask?.assignedToUserId || undefined
       });
@@ -166,7 +166,7 @@ const ProjectDetail = () => {
 
   if (!project) return null;
 
-  const completedTasks = tasks.filter(t => t.status === "Completed").length;
+  const completedTasks = tasks.filter(t => t.status === "Done").length;
   const totalTasks = tasks.length;
 
   return (
@@ -286,14 +286,14 @@ const ProjectDetail = () => {
                   ) : (
                     <div className="flex items-start gap-4">
                       <Checkbox
-                        checked={task.status === "Completed"}
+                        checked={task.status === "Done"}
                         onCheckedChange={() => handleToggleTask(task.id, task.status)}
                         className="mt-1"
                       />
                       <div className="flex-1">
                         <h3
                           className={`text-lg font-semibold ${
-                            task.status === "Completed" ? "line-through text-muted-foreground" : ""
+                            task.status === "Done" ? "line-through text-muted-foreground" : ""
                           }`}
                         >
                           {task.title}

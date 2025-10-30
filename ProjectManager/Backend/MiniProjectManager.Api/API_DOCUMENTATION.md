@@ -136,6 +136,32 @@ This document describes all available endpoints in the Mini Project Manager API,
 
 ## Task Endpoints
 
+### Get Tasks for Project
+
+- **URL:** `/api/projects/{projectId}/tasks`
+- **Method:** `GET`
+- **Description:** Retrieve all tasks for a specific project
+- **Authentication:** Required (Bearer Token)
+- **Response:**
+  - Status: 200 OK
+  ```json
+  [
+  	{
+  		"id": "guid",
+  		"title": "Task Title",
+  		"description": "Task Description",
+  		"status": 0,
+  		"dueDate": "2025-12-31T23:59:59Z",
+  		"projectId": "guid",
+  		"assignedToUserId": null
+  	}
+  ]
+  ```
+- **Status Values in Response:**
+  - `0` = Todo
+  - `1` = InProgress
+  - `2` = Done
+
 ### Create Task
 
 - **URL:** `/api/projects/{projectId}/tasks`
@@ -158,7 +184,7 @@ This document describes all available endpoints in the Mini Project Manager API,
   	"id": "guid",
   	"title": "Test Task",
   	"description": "This is a test task",
-  	"status": "NotStarted",
+  	"status": 0,
   	"dueDate": "2025-12-31T23:59:59Z",
   	"projectId": "guid",
   	"assignedToUserId": null
@@ -171,20 +197,25 @@ This document describes all available endpoints in the Mini Project Manager API,
 - **Method:** `PUT`
 - **Description:** Update an existing task
 - **Authentication:** Required (Bearer Token)
-- **Request Body:**
+- **Request Body:** *(Note: Properties must be in PascalCase with proper data types)*
   ```json
   {
-  	"title": "Updated Task",
-  	"description": "This task has been updated",
-  	"status": "InProgress",
-  	"dueDate": "2025-12-31T23:59:59Z",
-  	"assignedToUserId": null
+  	"Title": "Updated Task",
+  	"Description": "This task has been updated",
+  	"Status": 1,
+  	"DueDate": "2025-12-31T23:59:59Z",
+  	"AssignedToUserId": null
   }
   ```
+- **Status Values:**
+  - `0` = Todo
+  - `1` = InProgress  
+  - `2` = Done
 - **Response:**
   - Status: 204 No Content
 - **Error Response:**
   - Status: 404 Not Found
+  - Status: 400 Bad Request (if data format is incorrect)
 
 ### Delete Task
 
@@ -199,8 +230,17 @@ This document describes all available endpoints in the Mini Project Manager API,
 
 ## Additional Notes
 
-- All authenticated endpoints require a valid JWT token in the Authorization header
+- All authenticated endpoints require a valid JWT token in the Authorization header: `Authorization: Bearer <token>`
 - All dates are in ISO 8601 format
-- Task status can be: NotStarted, InProgress, Completed
+- **Task Status Values:**
+  - `0` = Todo (default status for new tasks)
+  - `1` = InProgress 
+  - `2` = Done
+- **Data Format Requirements:**
+  - **Request bodies for PUT/POST operations require PascalCase property names** (Title, Description, Status, etc.)
+  - **Response bodies use camelCase property names** (title, description, status, etc.)
+  - Status must be sent as integer values (0, 1, 2) in requests
+  - Status is returned as integer values (0, 1, 2) in responses
 - Project and task IDs are GUIDs
 - The API uses UTC timestamps for all date/time fields
+- The frontend automatically handles the data format conversion between camelCase and PascalCase

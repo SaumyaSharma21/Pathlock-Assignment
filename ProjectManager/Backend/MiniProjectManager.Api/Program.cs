@@ -47,15 +47,19 @@ namespace MiniProjectManager.Api
             });
             builder.Services.AddControllers();
 
-            // Add CORS policy for frontend development
+            // Add CORS policy for frontend development (Vite: 8080, 8082)
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod()
-                          .AllowCredentials();
+                    policy.WithOrigins(
+                        "http://localhost:8080",
+                        "http://localhost:8082",
+                        "http://localhost:5173",
+                        "http://localhost:3000"
+                    )
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
                 });
             });
 

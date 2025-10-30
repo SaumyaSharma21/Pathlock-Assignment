@@ -41,20 +41,22 @@ interface Task {
 }
 
 const ProjectDetail = () => {
-  const navigate = useNavigate();
-  const { id } = useParams();
-  const [project, setProject] = useState<Project | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [scheduling, setScheduling] = useState(false);
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [scheduleResults, setScheduleResults] = useState<Array<{ taskId: string; scheduledDate: string; assignedToUserId?: string }>>([]);
+	const navigate = useNavigate();
+	const { id } = useParams();
+	const [project, setProject] = useState<Project | null>(null);
+	const [tasks, setTasks] = useState<Task[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [dialogOpen, setDialogOpen] = useState(false);
+	const [newTaskTitle, setNewTaskTitle] = useState("");
+	const [newTaskDescription, setNewTaskDescription] = useState("");
+	const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+	const [editTitle, setEditTitle] = useState("");
+	const [editDescription, setEditDescription] = useState("");
+	const [scheduling, setScheduling] = useState(false);
+	const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+	const [scheduleResults, setScheduleResults] = useState<
+		Array<{ taskId: string; scheduledDate: string; assignedToUserId?: string }>
+	>([]);
 
 	useEffect(() => {
 		if (id) {
@@ -230,206 +232,258 @@ const ProjectDetail = () => {
 				</div>
 			</header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground">
-              {completedTasks} of {totalTasks} tasks completed
-            </p>
-            {totalTasks > 0 && (
-              <div className="mt-2 h-2 w-64 rounded-full bg-secondary">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${(completedTasks / totalTasks) * 100}%` }}
-                />
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Task
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Task</DialogTitle>
-                <DialogDescription>Add a new task to this project</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateTask} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="task-title">Task Title</Label>
-                  <Input
-                    id="task-title"
-                    placeholder="What needs to be done?"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="task-description">Description (optional)</Label>
-                  <Textarea
-                    id="task-description"
-                    placeholder="Add more details..."
-                    value={newTaskDescription}
-                    onChange={(e) => setNewTaskDescription(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">Create Task</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                if (!id) return;
-                try {
-                  setScheduling(true);
-                  const res = await ProjectsAPI.scheduleProject(id);
-                  setScheduleResults(res || []);
-                  setScheduleDialogOpen(true);
-                } catch (err: any) {
-                  toast.error(err.response?.data?.error || err.message || 'Scheduling failed');
-                } finally {
-                  setScheduling(false);
-                }
-              }}
-            >
-              {scheduling ? (
-                <span className="flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" /> Auto-schedule</span>
-              ) : (
-                'Auto-schedule'
-              )}
-            </Button>
-          </div>
-        </div>
+			<main className="container mx-auto px-4 py-8">
+				<div className="mb-8 flex items-center justify-between">
+					<div>
+						<p className="text-muted-foreground">
+							{completedTasks} of {totalTasks} tasks completed
+						</p>
+						{totalTasks > 0 && (
+							<div className="mt-2 h-2 w-64 rounded-full bg-secondary">
+								<div
+									className="h-full rounded-full bg-primary transition-all"
+									style={{ width: `${(completedTasks / totalTasks) * 100}%` }}
+								/>
+							</div>
+						)}
+					</div>
+					<div className="flex items-center gap-2">
+						<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+							<DialogTrigger asChild>
+								<Button>
+									<Plus className="mr-2 h-4 w-4" />
+									New Task
+								</Button>
+							</DialogTrigger>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>Create New Task</DialogTitle>
+									<DialogDescription>
+										Add a new task to this project
+									</DialogDescription>
+								</DialogHeader>
+								<form onSubmit={handleCreateTask} className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="task-title">Task Title</Label>
+										<Input
+											id="task-title"
+											placeholder="What needs to be done?"
+											value={newTaskTitle}
+											onChange={(e) => setNewTaskTitle(e.target.value)}
+											required
+										/>
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="task-description">
+											Description (optional)
+										</Label>
+										<Textarea
+											id="task-description"
+											placeholder="Add more details..."
+											value={newTaskDescription}
+											onChange={(e) => setNewTaskDescription(e.target.value)}
+											rows={3}
+										/>
+									</div>
+									<div className="flex justify-end gap-2">
+										<Button
+											type="button"
+											variant="outline"
+											onClick={() => setDialogOpen(false)}
+										>
+											Cancel
+										</Button>
+										<Button type="submit">Create Task</Button>
+									</div>
+								</form>
+							</DialogContent>
+						</Dialog>
+						<Button
+							variant="outline"
+							onClick={async () => {
+								if (!id) return;
+								try {
+									setScheduling(true);
+									const res = await ProjectsAPI.scheduleProject(id);
+									setScheduleResults(res || []);
+									setScheduleDialogOpen(true);
+								} catch (err: any) {
+									toast.error(
+										err.response?.data?.error ||
+											err.message ||
+											"Scheduling failed"
+									);
+								} finally {
+									setScheduling(false);
+								}
+							}}
+						>
+							{scheduling ? (
+								<span className="flex items-center gap-2">
+									<span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />{" "}
+									Auto-schedule
+								</span>
+							) : (
+								"Auto-schedule"
+							)}
+						</Button>
+					</div>
+				</div>
 
-        {tasks.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardHeader>
-              <CardTitle>No tasks yet</CardTitle>
-              <CardDescription>Create your first task to get started</CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <>
-          <div className="space-y-3">
-            {tasks.map((task) => (
-              <Card key={task.id} className="transition-all hover:shadow-md">
-                <CardContent className="pt-6">
-                  {editingTaskId === task.id ? (
-                    <div className="space-y-3">
-                      <Input
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        placeholder="Task title"
-                      />
-                      <Textarea
-                        value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
-                        placeholder="Task description"
-                        rows={2}
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                          <X className="mr-1 h-4 w-4" />
-                          Cancel
-                        </Button>
-                        <Button size="sm" onClick={() => handleSaveEdit(task.id)}>
-                          <Check className="mr-1 h-4 w-4" />
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-4">
-                      <Checkbox
-                        checked={task.status === "Completed"}
-                        onCheckedChange={() => handleToggleTask(task.id, task.status)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <h3
-                          className={`text-lg font-semibold ${
-                            task.status === "Completed" ? "line-through text-muted-foreground" : ""
-                          }`}
-                        >
-                          {task.title}
-                        </h3>
-                        {task.description && (
-                          <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
-                        )}
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {task.createdAt && ("Created " + new Date(task.createdAt).toLocaleDateString())}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleStartEdit(task)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+				{tasks.length === 0 ? (
+					<Card className="text-center py-12">
+						<CardHeader>
+							<CardTitle>No tasks yet</CardTitle>
+							<CardDescription>
+								Create your first task to get started
+							</CardDescription>
+						</CardHeader>
+					</Card>
+				) : (
+					<>
+						<div className="space-y-3">
+							{tasks.map((task) => (
+								<Card key={task.id} className="transition-all hover:shadow-md">
+									<CardContent className="pt-6">
+										{editingTaskId === task.id ? (
+											<div className="space-y-3">
+												<Input
+													value={editTitle}
+													onChange={(e) => setEditTitle(e.target.value)}
+													placeholder="Task title"
+												/>
+												<Textarea
+													value={editDescription}
+													onChange={(e) => setEditDescription(e.target.value)}
+													placeholder="Task description"
+													rows={2}
+												/>
+												<div className="flex justify-end gap-2">
+													<Button
+														size="sm"
+														variant="outline"
+														onClick={handleCancelEdit}
+													>
+														<X className="mr-1 h-4 w-4" />
+														Cancel
+													</Button>
+													<Button
+														size="sm"
+														onClick={() => handleSaveEdit(task.id)}
+													>
+														<Check className="mr-1 h-4 w-4" />
+														Save
+													</Button>
+												</div>
+											</div>
+										) : (
+											<div className="flex items-start gap-4">
+												<Checkbox
+													checked={task.status === "Done"}
+													onCheckedChange={() =>
+														handleToggleTask(task.id, task.status)
+													}
+													className="mt-1"
+												/>
+												<div className="flex-1">
+													<h3
+														className={`text-lg font-semibold ${
+															task.status === "Done"
+																? "line-through text-muted-foreground"
+																: ""
+														}`}
+													>
+														{task.title}
+													</h3>
+													{task.description && (
+														<p className="mt-1 text-sm text-muted-foreground">
+															{task.description}
+														</p>
+													)}
+													<p className="mt-2 text-xs text-muted-foreground">
+														{task.createdAt &&
+															"Created " +
+																new Date(task.createdAt).toLocaleDateString()}
+													</p>
+												</div>
+												<div className="flex gap-1">
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => handleStartEdit(task)}
+													>
+														<Edit2 className="h-4 w-4" />
+													</Button>
+													<Button
+														variant="ghost"
+														size="icon"
+														onClick={() => handleDeleteTask(task.id)}
+														className="text-destructive hover:bg-destructive/10"
+													>
+														<Trash2 className="h-4 w-4" />
+													</Button>
+												</div>
+											</div>
+										)}
+									</CardContent>
+								</Card>
+							))}
+						</div>
 
-          <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Suggested Schedule</DialogTitle>
-                <DialogDescription>One task per day starting today (simple suggestion)</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2 mt-4 max-h-80 overflow-auto">
-                {scheduleResults.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No schedule available</p>
-                ) : (
-                  scheduleResults.map((s) => {
-                    const task = tasks.find(t => t.id === s.taskId);
-                    return (
-                      <div key={s.taskId} className="flex items-center justify-between border-b py-2">
-                        <div>
-                          <div className="font-medium">{task?.title || 'Unknown task'}</div>
-                          {task?.description && <div className="text-sm text-muted-foreground">{task.description}</div>}
-                        </div>
-                        <div className="text-sm text-muted-foreground">{new Date(s.scheduledDate).toLocaleDateString()}</div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-              <div className="flex justify-end mt-4">
-                <Button onClick={() => setScheduleDialogOpen(false)}>Close</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-          </>
-        )}
-      </main>
-    </div>
-  );
+						<Dialog
+							open={scheduleDialogOpen}
+							onOpenChange={setScheduleDialogOpen}
+						>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>Suggested Schedule</DialogTitle>
+									<DialogDescription>
+										One task per day starting today (simple suggestion)
+									</DialogDescription>
+								</DialogHeader>
+								<div className="space-y-2 mt-4 max-h-80 overflow-auto">
+									{scheduleResults.length === 0 ? (
+										<p className="text-sm text-muted-foreground">
+											No schedule available
+										</p>
+									) : (
+										scheduleResults.map((s) => {
+											const task = tasks.find((t) => t.id === s.taskId);
+											return (
+												<div
+													key={s.taskId}
+													className="flex items-center justify-between border-b py-2"
+												>
+													<div>
+														<div className="font-medium">
+															{task?.title || "Unknown task"}
+														</div>
+														{task?.description && (
+															<div className="text-sm text-muted-foreground">
+																{task.description}
+															</div>
+														)}
+													</div>
+													<div className="text-sm text-muted-foreground">
+														{new Date(s.scheduledDate).toLocaleDateString()}
+													</div>
+												</div>
+											);
+										})
+									)}
+								</div>
+								<div className="flex justify-end mt-4">
+									<Button onClick={() => setScheduleDialogOpen(false)}>
+										Close
+									</Button>
+								</div>
+							</DialogContent>
+						</Dialog>
+					</>
+				)}
+			</main>
+		</div>
+	);
 };
 
 export default ProjectDetail;

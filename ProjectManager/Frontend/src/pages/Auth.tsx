@@ -68,12 +68,6 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      // Debug: log payload
-      console.log('Register payload:', {
-        username: registerUsername,
-        email: registerEmail,
-        password: registerPassword
-      });
       await AuthAPI.register(registerUsername, registerEmail, registerPassword);
       toast.success("Account created successfully! Please log in.");
       setTab("login");

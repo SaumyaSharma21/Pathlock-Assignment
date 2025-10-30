@@ -86,6 +86,45 @@ namespace MiniProjectManager.Api.Controllers
             return Ok(dto);
         }
 
+        // Smart scheduler: generates a suggested schedule for project tasks
+        [HttpPost("/api/v1/projects/{projectId}/schedule")]
+        public async Task<IActionResult> ScheduleProject(Guid projectId, [FromBody] DTOs.ScheduleRequestDto? dto)
+        {
+            var project = await _projects.GetByIdAsync(projectId);
+            if (project == null || project.OwnerId != CurrentUserId) return NotFound();
+
+            var tasks = (await _tasks.GetByProjectIdAsync(projectId)).OrderBy(t => t.DueDate ?? DateTime.MaxValue).ToList();
+
+            var startDate = dto?.StartDate?.ToUniversalTime().Date ?? DateTime.UtcNow.Date;
+
+            var schedule = new System.Collections.Generic.List<DTOs.ScheduledTaskDto>();
+
+            // Very simple scheduling: assign 1 task per day starting from startDate in order of nearest due date.
+            // If a task has a due date earlier than the assigned day, we set the scheduled date to its due date.
+            var dayOffset = 0;
+            foreach (var t in tasks)
+            {
+                var tentative = startDate.AddDays(dayOffset);
+                var scheduled = tentative;
+                if (t.DueDate.HasValue && scheduled > t.DueDate.Value.ToUniversalTime())
+                {
+                    // if tentative is after due date, schedule on the due date instead
+                    scheduled = t.DueDate.Value.ToUniversalTime().Date;
+                }
+
+                schedule.Add(new DTOs.ScheduledTaskDto
+                {
+                    TaskId = t.Id,
+                    ScheduledDate = scheduled,
+                    AssignedToUserId = t.AssignedToUserId
+                });
+
+                dayOffset++;
+            }
+
+            return Ok(schedule);
+        }
+
         [HttpPost("{projectId}/tasks")]
         public async Task<IActionResult> CreateTask(Guid projectId, [FromBody] DTOs.TaskCreateDto dto)
         {

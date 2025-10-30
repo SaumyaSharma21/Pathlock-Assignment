@@ -94,9 +94,9 @@ export const ProjectsAPI = {
 		return response.data;
 	},
 
-	deleteProject: async (id: string) => {
-		await api.delete(`/projects/${id}`);
-	},
+  deleteProject: async (id: string) => {
+    await api.delete(`/projects/${id}`);
+  }
 };
 
 // Tasks API

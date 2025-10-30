@@ -1,6 +1,84 @@
-@MiniProjectManager.Api_HostAddress = http://localhost:5118
+@host = http://localhost:5118
 
-GET {{MiniProjectManager.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register a new user
+# @name register
+POST {{host}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "Test123!"
+}
+
+### Login with the registered user
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "password": "Test123!"
+}
+
+### Store the auth token from login response
+@authToken = {{login.response.body.token}}
+
+### Get all projects
+GET {{host}}/api/projects
+Authorization: Bearer {{authToken}}
+
+### Create a new project
+# @name createProject
+POST {{host}}/api/projects
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "title": "Test Project",
+    "description": "This is a test project created via HTTP requests"
+}
+
+### Store the project ID from create response
+@projectId = {{createProject.response.body.id}}
+
+### Get project by ID
+GET {{host}}/api/projects/{{projectId}}
+Authorization: Bearer {{authToken}}
+
+### Create a task in the project
+# @name createTask
+POST {{host}}/api/projects/{{projectId}}/tasks
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "title": "Test Task",
+    "description": "This is a test task",
+    "dueDate": "2025-12-31T23:59:59Z",
+    "assignedToUserId": null
+}
+
+### Store the task ID from create response
+@taskId = {{createTask.response.body.id}}
+
+### Update task
+PUT {{host}}/api/tasks/{{taskId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "title": "Updated Task",
+    "description": "This task has been updated",
+    "status": "InProgress",
+    "dueDate": "2025-12-31T23:59:59Z",
+    "assignedToUserId": null
+}
+
+### Delete task
+DELETE {{host}}/api/tasks/{{taskId}}
+Authorization: Bearer {{authToken}}
+
+### Delete project
+DELETE {{host}}/api/projects/{{projectId}}
+Authorization: Bearer {{authToken}}

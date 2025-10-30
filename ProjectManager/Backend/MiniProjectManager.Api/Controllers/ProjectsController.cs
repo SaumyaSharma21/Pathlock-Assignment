@@ -97,13 +97,17 @@ namespace MiniProjectManager.Api.Controllers
             return CreatedAtAction(nameof(GetTasks), new { projectId }, new TaskDto { Id = task.Id, Title = task.Title, Description = task.Description, Status = task.Status, DueDate = task.DueDate, ProjectId = task.ProjectId });
         }
 
-        [HttpPut("{projectId}/tasks/{taskId}")]
-        public async Task<IActionResult> UpdateTask(Guid projectId, Guid taskId, [FromBody] DTOs.TaskUpdateDto dto)
+        // Direct task endpoints (without project nesting)
+        [HttpPut("/api/tasks/{taskId}")]
+        public async Task<IActionResult> UpdateTask(Guid taskId, [FromBody] DTOs.TaskUpdateDto dto)
         {
-            var project = await _projects.GetByIdAsync(projectId);
-            if (project == null || project.OwnerId != CurrentUserId) return NotFound();
             var task = await _tasks.GetByIdAsync(taskId);
-            if (task == null || task.ProjectId != projectId) return NotFound();
+            if (task == null) return NotFound();
+            
+            // Verify the task's project belongs to current user
+            var project = await _projects.GetByIdAsync(task.ProjectId);
+            if (project == null || project.OwnerId != CurrentUserId) return NotFound();
+            
             task.Title = dto.Title;
             task.Description = dto.Description;
             task.Status = dto.Status;
@@ -114,13 +118,16 @@ namespace MiniProjectManager.Api.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{projectId}/tasks/{taskId}")]
-        public async Task<IActionResult> DeleteTask(Guid projectId, Guid taskId)
+        [HttpDelete("/api/tasks/{taskId}")]
+        public async Task<IActionResult> DeleteTask(Guid taskId)
         {
-            var project = await _projects.GetByIdAsync(projectId);
-            if (project == null || project.OwnerId != CurrentUserId) return NotFound();
             var task = await _tasks.GetByIdAsync(taskId);
-            if (task == null || task.ProjectId != projectId) return NotFound();
+            if (task == null) return NotFound();
+            
+            // Verify the task's project belongs to current user
+            var project = await _projects.GetByIdAsync(task.ProjectId);
+            if (project == null || project.OwnerId != CurrentUserId) return NotFound();
+            
             _tasks.Remove(task);
             await _tasks.SaveChangesAsync();
             return NoContent();

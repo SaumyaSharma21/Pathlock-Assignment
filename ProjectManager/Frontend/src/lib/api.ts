@@ -129,17 +129,17 @@ export const TasksAPI = {
 		}
 	) => {
 		console.log("Updating task with data:", { taskId, data });
-		
+
 		// Convert status string to number and transform to backend format
-		const statusMap = { "Todo": 0, "InProgress": 1, "Done": 2 };
+		const statusMap = { Todo: 0, InProgress: 1, Done: 2 };
 		const backendData = {
 			Title: data.title,
 			Description: data.description,
 			Status: statusMap[data.status],
 			DueDate: data.dueDate,
-			AssignedToUserId: data.assignedToUserId
+			AssignedToUserId: data.assignedToUserId,
 		};
-		
+
 		try {
 			const response = await api.put(`/tasks/${taskId}`, backendData);
 			return response.data;

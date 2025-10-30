@@ -197,7 +197,7 @@ This document describes all available endpoints in the Mini Project Manager API,
 - **Method:** `PUT`
 - **Description:** Update an existing task
 - **Authentication:** Required (Bearer Token)
-- **Request Body:** *(Note: Properties must be in PascalCase with proper data types)*
+- **Request Body:** _(Note: Properties must be in PascalCase with proper data types)_
   ```json
   {
   	"Title": "Updated Task",
@@ -209,7 +209,7 @@ This document describes all available endpoints in the Mini Project Manager API,
   ```
 - **Status Values:**
   - `0` = Todo
-  - `1` = InProgress  
+  - `1` = InProgress
   - `2` = Done
 - **Response:**
   - Status: 204 No Content
@@ -234,7 +234,7 @@ This document describes all available endpoints in the Mini Project Manager API,
 - All dates are in ISO 8601 format
 - **Task Status Values:**
   - `0` = Todo (default status for new tasks)
-  - `1` = InProgress 
+  - `1` = InProgress
   - `2` = Done
 - **Data Format Requirements:**
   - **Request bodies for PUT/POST operations require PascalCase property names** (Title, Description, Status, etc.)

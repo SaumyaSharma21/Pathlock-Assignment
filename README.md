@@ -17,8 +17,6 @@ This repository contains two full-stack applications built for the Pathlock assi
   - [Features](#features-1)
   - [How to Run Locally](#how-to-run-taskmanager-locally)
   - [Live Demo](#live-demo-1)
-- [Bonus Task: Deployment](#bonus-task-deployment)
-- [Notes](#notes)
 
 ---
 

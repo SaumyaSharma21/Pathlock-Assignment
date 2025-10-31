@@ -36,6 +36,51 @@ Pathlock-Assignment/
 
 ---
 
+## TaskManager
+A lightweight, single-page task tracker.
+
+### Features
+- Add, toggle, and delete tasks
+- Task filtering (All / Active / Completed)
+- LocalStorage persistence
+- Responsive, modern UI (Tailwind CSS)
+- Fast in-memory .NET 8 backend
+
+### How to Run TaskManager Locally
+
+#### Backend
+1. Navigate to the backend folder:
+   ```sh
+   cd TaskManager/Backend/TaskManagerApi
+   ```
+2. Run the API:
+   ```sh
+   dotnet run
+   ```
+   The API will be available at `http://localhost:5000`.
+
+#### Frontend
+1. Navigate to the frontend folder:
+   ```sh
+   cd TaskManager/Frontend
+   ```
+2. Install dependencies:
+   ```sh
+   npm install
+   ```
+3. Start the app:
+   ```sh
+   npm run dev
+   ```
+   The app will be available at `http://localhost:5173`.
+
+### Live Demo
+> **[Add your deployed TaskManager Frontend and Backend URLs here after deployment]**
+- Frontend: [https://your-taskmanager-frontend-url](https://your-taskmanager-frontend-url)
+- Backend: [https://your-taskmanager-backend-url](https://your-taskmanager-backend-url)
+
+---
+
 ## ProjectManager
 A full-featured project and task management system.
 
@@ -86,47 +131,3 @@ A full-featured project and task management system.
 
 ---
 
-## TaskManager
-A lightweight, single-page task tracker.
-
-### Features
-- Add, toggle, and delete tasks
-- Task filtering (All / Active / Completed)
-- LocalStorage persistence
-- Responsive, modern UI (Tailwind CSS)
-- Fast in-memory .NET 8 backend
-
-### How to Run TaskManager Locally
-
-#### Backend
-1. Navigate to the backend folder:
-   ```sh
-   cd TaskManager/Backend/TaskManagerApi
-   ```
-2. Run the API:
-   ```sh
-   dotnet run
-   ```
-   The API will be available at `http://localhost:5000`.
-
-#### Frontend
-1. Navigate to the frontend folder:
-   ```sh
-   cd TaskManager/Frontend
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   ```
-3. Start the app:
-   ```sh
-   npm run dev
-   ```
-   The app will be available at `http://localhost:5173`.
-
-### Live Demo
-> **[Add your deployed TaskManager Frontend and Backend URLs here after deployment]**
-- Frontend: [https://your-taskmanager-frontend-url](https://your-taskmanager-frontend-url)
-- Backend: [https://your-taskmanager-backend-url](https://your-taskmanager-backend-url)
-
----

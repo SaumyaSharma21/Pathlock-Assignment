@@ -130,16 +130,3 @@ A lightweight, single-page task tracker.
 - Backend: [https://your-taskmanager-backend-url](https://your-taskmanager-backend-url)
 
 ---
-
-## Bonus Task: Deployment
-
-**Bonus:** Both applications can be deployed to platforms like Vercel, Netlify, Azure, or Render (for frontend) and Azure, Railway, or Render (for backend). After deployment, update the above demo links and share them as part of your submission.
-
----
-
-## Notes
-- Do not submit code as a `.zip` archive. Submission must be a public GitHub or GitLab repository with clear structure.
-- Each app is self-contained and can be run independently.
-- For any issues, please check the README or open an issue in the repository.
-
----

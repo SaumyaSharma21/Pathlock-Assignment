@@ -26,12 +26,13 @@ This repository contains two full-stack applications built for the Pathlock assi
 
 ```
 Pathlock-Assignment/
+   TaskManager/
+    Backend/   # .NET 8 In-memory REST API
+    Frontend/  # React + TypeScript SPA
   ProjectManager/
     Backend/   # .NET 8 + EF Core + JWT API
     Frontend/  # React + TypeScript SPA
-  TaskManager/
-    Backend/   # .NET 8 In-memory REST API
-    Frontend/  # React + TypeScript SPA
+  
 ```
 
 ---

@@ -11,8 +11,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "postinstall": ""
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",

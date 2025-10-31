@@ -76,7 +76,7 @@ A lightweight, single-page task tracker.
    The app will be available at `http://localhost:5173`.
 
 ### Live Demo
-- Frontend: [https://task-manager-seven-tan.vercel.app/] (https://task-manager-seven-tan.vercel.app/)
+- Frontend: [https://task-manager-seven-tan.vercel.app/] 
 - Backend: not deployed
 
 ---

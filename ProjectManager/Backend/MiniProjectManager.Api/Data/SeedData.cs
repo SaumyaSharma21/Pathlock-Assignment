@@ -43,8 +43,8 @@ namespace MiniProjectManager.Api.Data
 
             await db.Projects.AddAsync(project);
 
-            var t1 = new TaskItem { Title = "Setup project", Description = "Initial setup tasks", Project = project, Status = MiniProjectManager.Api.Models.TaskStatus.Todo };
-            var t2 = new TaskItem { Title = "Create sample task", Description = "A completed example", Project = project, Status = MiniProjectManager.Api.Models.TaskStatus.Done };
+            var t1 = new TaskItem { Title = "Setup project", Description = "Initial setup tasks", Project = project, Status = MiniProjectManager.Api.Models.TaskStatus.NotStarted };
+            var t2 = new TaskItem { Title = "Create sample task", Description = "A completed example", Project = project, Status = MiniProjectManager.Api.Models.TaskStatus.Completed };
 
             await db.Tasks.AddRangeAsync(t1, t2);
 

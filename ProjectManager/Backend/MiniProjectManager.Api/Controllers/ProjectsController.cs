@@ -82,7 +82,17 @@ namespace MiniProjectManager.Api.Controllers
             var project = await _projects.GetByIdAsync(projectId);
             if (project == null || project.OwnerId != CurrentUserId) return NotFound();
             var tasks = await _tasks.GetByProjectIdAsync(projectId);
-            var dto = tasks.Select(t => new TaskDto { Id = t.Id, Title = t.Title, Description = t.Description, Status = t.Status, DueDate = t.DueDate, ProjectId = t.ProjectId, AssignedToUserId = t.AssignedToUserId });
+            var dto = tasks.Select(t => new TaskDto { 
+                Id = t.Id, 
+                Title = t.Title, 
+                Description = t.Description, 
+                Status = t.Status, 
+                DueDate = t.DueDate, 
+                EstimatedHours = t.EstimatedHours,
+                Dependencies = t.GetDependencies(),
+                ProjectId = t.ProjectId, 
+                AssignedToUserId = t.AssignedToUserId 
+            });
             return Ok(dto);
         }
 
@@ -93,36 +103,101 @@ namespace MiniProjectManager.Api.Controllers
             var project = await _projects.GetByIdAsync(projectId);
             if (project == null || project.OwnerId != CurrentUserId) return NotFound();
 
-            var tasks = (await _tasks.GetByProjectIdAsync(projectId)).OrderBy(t => t.DueDate ?? DateTime.MaxValue).ToList();
-
             var startDate = dto?.StartDate?.ToUniversalTime().Date ?? DateTime.UtcNow.Date;
 
-            var schedule = new System.Collections.Generic.List<DTOs.ScheduledTaskDto>();
+            // Use tasks from request if provided, otherwise use existing project tasks
+            List<(string title, int hours, DateTime? due, List<string> deps)> tasksToSchedule;
 
-            // Very simple scheduling: assign 1 task per day starting from startDate in order of nearest due date.
-            // If a task has a due date earlier than the assigned day, we set the scheduled date to its due date.
-            var dayOffset = 0;
-            foreach (var t in tasks)
+            if (dto?.Tasks?.Any() == true)
             {
-                var tentative = startDate.AddDays(dayOffset);
-                var scheduled = tentative;
-                if (t.DueDate.HasValue && scheduled > t.DueDate.Value.ToUniversalTime())
-                {
-                    // if tentative is after due date, schedule on the due date instead
-                    scheduled = t.DueDate.Value.ToUniversalTime().Date;
-                }
-
-                schedule.Add(new DTOs.ScheduledTaskDto
-                {
-                    TaskId = t.Id,
-                    ScheduledDate = scheduled,
-                    AssignedToUserId = t.AssignedToUserId
-                });
-
-                dayOffset++;
+                // Use tasks from request body (for planning new work)
+                tasksToSchedule = dto.Tasks.Select(t => (
+                    title: t.Title,
+                    hours: t.EstimatedHours,
+                    due: t.DueDate,
+                    deps: t.Dependencies ?? new List<string>()
+                )).ToList();
+            }
+            else
+            {
+                // Use existing project tasks
+                var existingTasks = await _tasks.GetByProjectIdAsync(projectId);
+                tasksToSchedule = existingTasks
+                    .Where(t => t.Status != Models.TaskStatus.Completed) // Only schedule incomplete tasks
+                    .Select(t => (
+                        title: t.Title,
+                        hours: t.EstimatedHours,
+                        due: t.DueDate,
+                        deps: t.GetDependencies()
+                    )).ToList();
             }
 
-            return Ok(schedule);
+            // Advanced scheduling algorithm with dependency resolution
+            var scheduledTasks = ScheduleTasksWithDependencies(tasksToSchedule, startDate);
+            
+            var response = new DTOs.ScheduleResponseDto
+            {
+                RecommendedOrder = scheduledTasks.Select(t => t.Title).ToList(),
+                DetailedSchedule = scheduledTasks
+            };
+
+            return Ok(response);
+        }
+
+        private List<DTOs.ScheduledTaskDto> ScheduleTasksWithDependencies(
+            List<(string title, int hours, DateTime? due, List<string> deps)> tasks, 
+            DateTime startDate)
+        {
+            var result = new List<DTOs.ScheduledTaskDto>();
+            var completed = new HashSet<string>();
+            var taskMap = tasks.ToDictionary(t => t.title, t => t);
+            var currentDate = startDate;
+
+            // Topological sort with scheduling
+            while (completed.Count < tasks.Count)
+            {
+                var readyTasks = tasks
+                    .Where(t => !completed.Contains(t.title) && 
+                               t.deps.All(dep => completed.Contains(dep)))
+                    .OrderBy(t => t.due ?? DateTime.MaxValue) // Priority by due date
+                    .ThenBy(t => t.hours) // Then by estimated time
+                    .ToList();
+
+                if (!readyTasks.Any())
+                {
+                    // Circular dependency or missing dependency - schedule remaining tasks anyway
+                    readyTasks = tasks.Where(t => !completed.Contains(t.title)).ToList();
+                }
+
+                var taskToSchedule = readyTasks.First();
+                
+                // Calculate end date based on estimated hours (assuming 8 work hours per day)
+                var workDays = Math.Max(1, (int)Math.Ceiling(taskToSchedule.hours / 8.0));
+                var endDate = currentDate.AddDays(workDays - 1);
+
+                // If task has due date and we're past it, schedule on due date
+                if (taskToSchedule.due.HasValue && currentDate > taskToSchedule.due.Value.Date)
+                {
+                    currentDate = taskToSchedule.due.Value.Date;
+                    endDate = currentDate.AddDays(workDays - 1);
+                }
+
+                result.Add(new DTOs.ScheduledTaskDto
+                {
+                    Title = taskToSchedule.title,
+                    ScheduledStartDate = currentDate,
+                    ScheduledEndDate = endDate,
+                    EstimatedHours = taskToSchedule.hours,
+                    Dependencies = taskToSchedule.deps,
+                    AssignedToUserId = null,
+                    OriginalDueDate = taskToSchedule.due
+                });
+
+                completed.Add(taskToSchedule.title);
+                currentDate = endDate.AddDays(1); // Next task starts the day after current ends
+            }
+
+            return result;
         }
 
         [HttpPost("{projectId}/tasks")]
@@ -130,10 +205,27 @@ namespace MiniProjectManager.Api.Controllers
         {
             var project = await _projects.GetByIdAsync(projectId);
             if (project == null || project.OwnerId != CurrentUserId) return NotFound();
-            var task = new TaskItem { Title = dto.Title, Description = dto.Description, DueDate = dto.DueDate, ProjectId = projectId, AssignedToUserId = dto.AssignedToUserId };
+            var task = new TaskItem { 
+                Title = dto.Title, 
+                Description = dto.Description, 
+                DueDate = dto.DueDate, 
+                EstimatedHours = dto.EstimatedHours,
+                ProjectId = projectId, 
+                AssignedToUserId = dto.AssignedToUserId 
+            };
+            task.SetDependencies(dto.Dependencies ?? new List<string>());
             await _tasks.AddAsync(task);
             await _tasks.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetTasks), new { projectId }, new TaskDto { Id = task.Id, Title = task.Title, Description = task.Description, Status = task.Status, DueDate = task.DueDate, ProjectId = task.ProjectId });
+            return CreatedAtAction(nameof(GetTasks), new { projectId }, new TaskDto { 
+                Id = task.Id, 
+                Title = task.Title, 
+                Description = task.Description, 
+                Status = task.Status, 
+                DueDate = task.DueDate, 
+                EstimatedHours = task.EstimatedHours,
+                Dependencies = task.GetDependencies(),
+                ProjectId = task.ProjectId 
+            });
         }
 
         // Direct task endpoints (without project nesting)
@@ -151,6 +243,8 @@ namespace MiniProjectManager.Api.Controllers
             task.Description = dto.Description;
             task.Status = dto.Status;
             task.DueDate = dto.DueDate;
+            task.EstimatedHours = dto.EstimatedHours;
+            task.SetDependencies(dto.Dependencies ?? new List<string>());
             task.AssignedToUserId = dto.AssignedToUserId;
             _tasks.Update(task);
             await _tasks.SaveChangesAsync();

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="tmGradientMedium" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#101859;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#046FA9;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded rectangle background -->
+  <rect x="3" y="3" width="42" height="42" rx="10" ry="10" fill="url(#tmGradientMedium)" />
+  
+  <!-- TM Text -->
+  <text x="24" y="32" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">TM</text>
+</svg>

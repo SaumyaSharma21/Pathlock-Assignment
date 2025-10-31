@@ -10,24 +10,10 @@ const api = axios.create({
 	},
 });
 
-// Add a request interceptor to include the auth token
-api.interceptors.request.use(
-	(config) => {
-		const token = localStorage.getItem("token");
-		if (token) {
-			config.headers.Authorization = `Bearer ${token}`;
-		}
-		return config;
-	},
-	(error) => {
-		return Promise.reject(error);
-	}
-);
-
 // Request interceptor to add auth token
 api.interceptors.request.use(
 	(config) => {
-		const token = localStorage.getItem("token");
+		const token = sessionStorage.getItem("token");
 		if (token) {
 			config.headers.Authorization = `Bearer ${token}`;
 		}
@@ -42,20 +28,26 @@ api.interceptors.request.use(
 api.interceptors.response.use(
 	(response) => response,
 	(error) => {
-		if (error.response?.status === 401) {
-			localStorage.removeItem("token");
+		// Only redirect on 401 if it's not a login request (to allow proper error handling in login form)
+		if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+			sessionStorage.removeItem("token");
 			window.location.href = "/auth";
 		}
 		return Promise.reject(error);
 	}
 );
 
+// Clean up any old localStorage tokens (migration to sessionStorage)
+if (typeof window !== 'undefined') {
+	localStorage.removeItem("token");
+}
+
 // Auth API
 export const AuthAPI = {
 	login: async (username: string, password: string) => {
 		const response = await api.post("/auth/login", { username, password });
 		const { token } = response.data;
-		localStorage.setItem("token", token);
+		sessionStorage.setItem("token", token);
 		return response.data;
 	},
 
@@ -69,11 +61,13 @@ export const AuthAPI = {
 	},
 
 	logout: () => {
+		sessionStorage.removeItem("token");
+		// Also clear localStorage as a safety measure
 		localStorage.removeItem("token");
 	},
 
 	isAuthenticated: () => {
-		return !!localStorage.getItem("token");
+		return !!sessionStorage.getItem("token");
 	},
 };
 
@@ -94,16 +88,42 @@ export const ProjectsAPI = {
 		return response.data;
 	},
 
-  deleteProject: async (id: string) => {
-    await api.delete(`/projects/${id}`);
-  }
+	deleteProject: async (id: string) => {
+		await api.delete(`/projects/${id}`);
+	},
+
+	// Scheduler
+	scheduleProject: async (projectId: string, data?: { 
+		startDate?: string; 
+		tasks?: Array<{ title: string; estimatedHours: number; dueDate?: string; dependencies?: string[] }> 
+	}) => {
+		const response = await api.post(`/v1/projects/${projectId}/schedule`, data || {});
+		return response.data as { 
+			recommendedOrder: string[]; 
+			detailedSchedule: Array<{
+				taskId?: string;
+				title: string;
+				scheduledStartDate: string;
+				scheduledEndDate: string;
+				estimatedHours: number;
+				dependencies?: string[];
+				assignedToUserId?: string;
+				originalDueDate?: string;
+			}>
+		};
+	}
 };
 
 // Tasks API
 export const TasksAPI = {
 	getTasksForProject: async (projectId: string) => {
 		const response = await api.get(`/projects/${projectId}/tasks`);
-		return response.data;
+		// Convert status numbers from backend to strings for frontend
+		const statusMap = { 0: "NotStarted", 1: "InProgress", 2: "Completed" };
+		return response.data.map((task: any) => ({
+			...task,
+			status: statusMap[task.status as 0 | 1 | 2] || "NotStarted"
+		}));
 	},
 	createTask: async (
 		projectId: string,
@@ -111,11 +131,18 @@ export const TasksAPI = {
 			title: string;
 			description: string;
 			dueDate: string;
+			estimatedHours?: number;
+			dependencies?: string[];
 			assignedToUserId?: string;
 		}
 	) => {
 		const response = await api.post(`/projects/${projectId}/tasks`, data);
-		return response.data;
+		// Convert status number from backend to string for frontend
+		const statusMap = { 0: "NotStarted", 1: "InProgress", 2: "Completed" };
+		return {
+			...response.data,
+			status: statusMap[response.data.status as 0 | 1 | 2] || "NotStarted"
+		};
 	},
 
 	updateTask: async (
@@ -123,36 +150,27 @@ export const TasksAPI = {
 		data: {
 			title: string;
 			description: string;
-			status: "Todo" | "InProgress" | "Done";
+			status: "NotStarted" | "InProgress" | "Completed";
 			dueDate: string;
+			estimatedHours?: number;
+			dependencies?: string[];
 			assignedToUserId?: string;
 		}
 	) => {
-		console.log("Updating task with data:", { taskId, data });
-
-		// Convert status string to number and transform to backend format
-		const statusMap = { Todo: 0, InProgress: 1, Done: 2 };
+		// Convert status string to number for backend enum
+		const statusMap = { NotStarted: 0, InProgress: 1, Completed: 2 };
 		const backendData = {
-			Title: data.title,
-			Description: data.description,
-			Status: statusMap[data.status],
-			DueDate: data.dueDate,
-			AssignedToUserId: data.assignedToUserId,
+			title: data.title,
+			description: data.description,
+			status: statusMap[data.status],
+			dueDate: data.dueDate,
+			estimatedHours: data.estimatedHours || 8,
+			dependencies: data.dependencies || [],
+			assignedToUserId: data.assignedToUserId,
 		};
 
-		try {
-			const response = await api.put(`/tasks/${taskId}`, backendData);
-			return response.data;
-		} catch (error: any) {
-			console.error("Error updating task:", {
-				error,
-				response: error.response?.data,
-				status: error.response?.status,
-				headers: error.response?.headers,
-				config: error.config,
-			});
-			throw error;
-		}
+		const response = await api.put(`/tasks/${taskId}`, backendData);
+		return response.data;
 	},
 
 	deleteTask: async (taskId: string) => {

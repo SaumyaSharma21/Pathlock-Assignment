@@ -9,10 +9,10 @@ namespace MiniProjectManager.Api.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required]
-        [StringLength(150)]
+        [StringLength(100, MinimumLength = 3)]
         public string Title { get; set; } = null!;
 
-        [StringLength(2000)]
+        [StringLength(500)]
         public string? Description { get; set; }
 
         public Guid OwnerId { get; set; }

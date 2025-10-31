@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -14,6 +15,13 @@ export default {
     },
     extend: {
       colors: {
+        // Pathlock Brand Colors - Optimized for Readability
+        pathlock: {
+          primary: "#101859", // Primary Dark Blue (Blue Zodiac) - kept for brand consistency
+          secondary: "#046FA9", // Secondary Blue (Allports) - kept for brand consistency  
+          accent: "#16A34A", // Darker Green (green-600) - much better readability while maintaining green accent
+          accentLight: "#22C55E", // Lighter green variant (green-500) for hover states
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -87,5 +95,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

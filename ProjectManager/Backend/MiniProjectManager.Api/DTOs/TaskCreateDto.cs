@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace MiniProjectManager.Api.DTOs
@@ -13,6 +14,12 @@ namespace MiniProjectManager.Api.DTOs
         public string? Description { get; set; }
 
         public DateTime? DueDate { get; set; }
+        
+        [Range(1, 1000)]
+        public int EstimatedHours { get; set; } = 8;
+        
+        public List<string>? Dependencies { get; set; }
+        
         public Guid? AssignedToUserId { get; set; }
     }
 }

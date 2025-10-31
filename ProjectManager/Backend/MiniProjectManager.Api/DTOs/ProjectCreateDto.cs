@@ -5,10 +5,10 @@ namespace MiniProjectManager.Api.DTOs
     public class ProjectCreateDto
     {
         [Required]
-        [StringLength(150)]
+        [StringLength(100, MinimumLength = 3)]
         public string Title { get; set; } = null!;
 
-        [StringLength(2000)]
+        [StringLength(500)]
         public string? Description { get; set; }
     }
 }

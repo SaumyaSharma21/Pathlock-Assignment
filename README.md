@@ -2,21 +2,23 @@
 
 This repository contains two full-stack applications built for the Pathlock assignment:
 
-- **ProjectManager**: A robust project and task management platform with authentication, scheduling, and smart planning features.
 - **TaskManager**: A minimal, fast, and user-friendly task tracker.
+- **ProjectManager**: A robust project and task management platform with authentication, scheduling, and smart planning features.
+
 
 ---
 
 ## Table of Contents
 - [Project Structure](#project-structure)
-- [ProjectManager](#projectmanager)
-  - [Features](#features)
-  - [How to Run Locally](#how-to-run-projectmanager-locally)
-  - [Live Demo](#live-demo)
 - [TaskManager](#taskmanager)
   - [Features](#features-1)
   - [How to Run Locally](#how-to-run-taskmanager-locally)
   - [Live Demo](#live-demo-1)
+- [ProjectManager](#projectmanager)
+  - [Features](#features)
+  - [How to Run Locally](#how-to-run-projectmanager-locally)
+  - [Live Demo](#live-demo)
+
 
 ---
 

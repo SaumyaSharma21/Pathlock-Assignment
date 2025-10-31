@@ -29,7 +29,10 @@ api.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		// Only redirect on 401 if it's not a login request (to allow proper error handling in login form)
-		if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+		if (
+			error.response?.status === 401 &&
+			!error.config?.url?.includes("/auth/login")
+		) {
 			sessionStorage.removeItem("token");
 			window.location.href = "/auth";
 		}
@@ -38,7 +41,7 @@ api.interceptors.response.use(
 );
 
 // Clean up any old localStorage tokens (migration to sessionStorage)
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
 	localStorage.removeItem("token");
 }
 
@@ -93,13 +96,24 @@ export const ProjectsAPI = {
 	},
 
 	// Scheduler
-	scheduleProject: async (projectId: string, data?: { 
-		startDate?: string; 
-		tasks?: Array<{ title: string; estimatedHours: number; dueDate?: string; dependencies?: string[] }> 
-	}) => {
-		const response = await api.post(`/v1/projects/${projectId}/schedule`, data || {});
-		return response.data as { 
-			recommendedOrder: string[]; 
+	scheduleProject: async (
+		projectId: string,
+		data?: {
+			startDate?: string;
+			tasks?: Array<{
+				title: string;
+				estimatedHours: number;
+				dueDate?: string;
+				dependencies?: string[];
+			}>;
+		}
+	) => {
+		const response = await api.post(
+			`/v1/projects/${projectId}/schedule`,
+			data || {}
+		);
+		return response.data as {
+			recommendedOrder: string[];
 			detailedSchedule: Array<{
 				taskId?: string;
 				title: string;
@@ -109,9 +123,16 @@ export const ProjectsAPI = {
 				dependencies?: string[];
 				assignedToUserId?: string;
 				originalDueDate?: string;
-			}>
+			}>;
 		};
-	}
+	},
+
+	reorderTasks: async (
+		projectId: string,
+		tasks: Array<{ taskId: string; order: number }>
+	) => {
+		await api.post(`/projects/${projectId}/tasks/reorder`, { tasks });
+	},
 };
 
 // Tasks API
@@ -122,7 +143,7 @@ export const TasksAPI = {
 		const statusMap = { 0: "NotStarted", 1: "InProgress", 2: "Completed" };
 		return response.data.map((task: any) => ({
 			...task,
-			status: statusMap[task.status as 0 | 1 | 2] || "NotStarted"
+			status: statusMap[task.status as 0 | 1 | 2] || "NotStarted",
 		}));
 	},
 	createTask: async (
@@ -141,7 +162,7 @@ export const TasksAPI = {
 		const statusMap = { 0: "NotStarted", 1: "InProgress", 2: "Completed" };
 		return {
 			...response.data,
-			status: statusMap[response.data.status as 0 | 1 | 2] || "NotStarted"
+			status: statusMap[response.data.status as 0 | 1 | 2] || "NotStarted",
 		};
 	},
 

@@ -15,5 +15,6 @@ namespace MiniProjectManager.Api.DTOs
         public List<string>? Dependencies { get; set; }
         public Guid ProjectId { get; set; }
         public Guid? AssignedToUserId { get; set; }
+        public int? ScheduledOrder { get; set; }
     }
 }

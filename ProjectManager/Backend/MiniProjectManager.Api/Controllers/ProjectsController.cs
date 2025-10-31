@@ -91,7 +91,8 @@ namespace MiniProjectManager.Api.Controllers
                 EstimatedHours = t.EstimatedHours,
                 Dependencies = t.GetDependencies(),
                 ProjectId = t.ProjectId, 
-                AssignedToUserId = t.AssignedToUserId 
+                AssignedToUserId = t.AssignedToUserId,
+                ScheduledOrder = t.ScheduledOrder
             });
             return Ok(dto);
         }
@@ -200,6 +201,43 @@ namespace MiniProjectManager.Api.Controllers
             return result;
         }
 
+        [HttpPost("{projectId}/tasks/reorder")]
+        public async Task<IActionResult> ReorderTasks(Guid projectId, [FromBody] TaskReorderRequestDto request)
+        {
+            if (request?.Tasks == null)
+            {
+                return BadRequest("Task order payload is required.");
+            }
+
+            var project = await _projects.GetByIdAsync(projectId);
+            if (project == null || project.OwnerId != CurrentUserId) return NotFound();
+
+            var orderLookup = request.Tasks
+                .GroupBy(t => t.TaskId)
+                .Select(g => g.First())
+                .ToDictionary(t => t.TaskId, t => t.Order);
+
+            var projectTasks = (await _tasks.GetByProjectIdAsync(projectId)).ToList();
+
+            foreach (var task in projectTasks)
+            {
+                if (orderLookup.TryGetValue(task.Id, out var order))
+                {
+                    task.ScheduledOrder = order;
+                }
+                else
+                {
+                    task.ScheduledOrder = null;
+                }
+
+                _tasks.Update(task);
+            }
+
+            await _tasks.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         [HttpPost("{projectId}/tasks")]
         public async Task<IActionResult> CreateTask(Guid projectId, [FromBody] DTOs.TaskCreateDto dto)
         {
@@ -224,7 +262,9 @@ namespace MiniProjectManager.Api.Controllers
                 DueDate = task.DueDate, 
                 EstimatedHours = task.EstimatedHours,
                 Dependencies = task.GetDependencies(),
-                ProjectId = task.ProjectId 
+                ProjectId = task.ProjectId,
+                AssignedToUserId = task.AssignedToUserId,
+                ScheduledOrder = task.ScheduledOrder
             });
         }
 

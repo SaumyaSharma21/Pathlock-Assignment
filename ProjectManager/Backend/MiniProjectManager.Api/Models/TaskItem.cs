@@ -29,6 +29,8 @@ namespace MiniProjectManager.Api.Models
         // New properties for advanced scheduling
         public int EstimatedHours { get; set; } = 8; // Default 1 day
 
+    public int? ScheduledOrder { get; set; }
+
         // Dependencies stored as comma-separated task titles for simplicity
         [StringLength(1000)]
         public string? Dependencies { get; set; }

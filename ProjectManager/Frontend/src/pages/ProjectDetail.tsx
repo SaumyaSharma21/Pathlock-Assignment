@@ -1,4 +1,12 @@
-import { useEffect, useState } from "react";
+import {
+	ChangeEvent,
+	Dispatch,
+	FocusEvent,
+	SetStateAction,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ProjectsAPI, TasksAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -68,7 +76,19 @@ interface Task {
 	dependencies?: string[];
 	assignedToUserId?: string;
 	createdAt?: string;
+	scheduledOrder?: number | null;
 }
+
+const DEFAULT_ESTIMATED_HOURS = 8;
+const MAX_ESTIMATED_HOURS = 200;
+
+const clampEstimatedHours = (value: number) =>
+	Math.min(MAX_ESTIMATED_HOURS, Math.max(1, Math.round(value)));
+
+const resolveEstimatedHours = (rawValue: number | "") =>
+	typeof rawValue === "number"
+		? clampEstimatedHours(rawValue)
+		: DEFAULT_ESTIMATED_HOURS;
 
 const ProjectDetail = () => {
 	const navigate = useNavigate();
@@ -79,17 +99,22 @@ const ProjectDetail = () => {
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [newTaskTitle, setNewTaskTitle] = useState("");
 	const [newTaskDescription, setNewTaskDescription] = useState("");
-	const [newTaskEstimatedHours, setNewTaskEstimatedHours] = useState(8);
+	const [newTaskEstimatedHours, setNewTaskEstimatedHours] = useState<
+		number | ""
+	>(DEFAULT_ESTIMATED_HOURS);
 	const [newTaskDueDate, setNewTaskDueDate] = useState("");
 	const [newTaskDependencies, setNewTaskDependencies] = useState<string[]>([]);
 	const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 	const [editTitle, setEditTitle] = useState("");
 	const [editDescription, setEditDescription] = useState("");
-	const [editEstimatedHours, setEditEstimatedHours] = useState(8);
+	const [editEstimatedHours, setEditEstimatedHours] = useState<number | "">(
+		DEFAULT_ESTIMATED_HOURS
+	);
 	const [editDueDate, setEditDueDate] = useState("");
 	const [editDependencies, setEditDependencies] = useState<string[]>([]);
 	const [scheduling, setScheduling] = useState(false);
 	const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+	const [savingSchedule, setSavingSchedule] = useState(false);
 	const [taskOperations, setTaskOperations] = useState<{
 		[key: string]: boolean;
 	}>({});
@@ -116,6 +141,55 @@ const ProjectDetail = () => {
 		null
 	);
 
+	const orderedTasks = useMemo(() => {
+		const orderIndex = new Map(
+			appliedScheduleOrder.map((taskId, idx) => [taskId, idx])
+		);
+
+		return [...tasks]
+			.map((task, idx) => ({
+				task,
+				order: orderIndex.get(task.id) ?? Number.MAX_SAFE_INTEGER,
+				fallback: idx,
+				statusWeight: task.status === "Completed" ? 1 : 0,
+			}))
+			.sort((a, b) => {
+				if (a.statusWeight !== b.statusWeight) {
+					return a.statusWeight - b.statusWeight;
+				}
+
+				if (a.order !== b.order) {
+					return a.order - b.order;
+				}
+
+				return a.fallback - b.fallback;
+			})
+			.map(({ task }) => task);
+	}, [appliedScheduleOrder, tasks]);
+
+	const handleEstimatedHoursChange =
+		(setter: Dispatch<SetStateAction<number | "">>) =>
+		(event: ChangeEvent<HTMLInputElement>) => {
+			const { value } = event.target;
+			if (value === "") {
+				setter("");
+				return;
+			}
+			const numericValue = Number(value);
+			if (Number.isNaN(numericValue)) {
+				return;
+			}
+			setter(clampEstimatedHours(numericValue));
+		};
+
+	const handleEstimatedHoursBlur =
+		(setter: Dispatch<SetStateAction<number | "">>) =>
+		(event: FocusEvent<HTMLInputElement>) => {
+			if (event.target.value.trim() === "") {
+				setter(DEFAULT_ESTIMATED_HOURS);
+			}
+		};
+
 	useEffect(() => {
 		if (id) {
 			fetchProjectAndTasks();
@@ -129,10 +203,20 @@ const ProjectDetail = () => {
 			setProject(projectData);
 			// Fetch tasks for this project using the correct endpoint
 			try {
-				const tasksData = await TasksAPI.getTasksForProject(id!);
+				const tasksData = (await TasksAPI.getTasksForProject(id!)) as Task[];
 				setTasks(tasksData);
+				const persistedOrder = tasksData
+					.filter((task) => typeof task.scheduledOrder === "number")
+					.sort(
+						(a, b) =>
+							(a.scheduledOrder ?? Number.MAX_SAFE_INTEGER) -
+							(b.scheduledOrder ?? Number.MAX_SAFE_INTEGER)
+					)
+					.map((task) => task.id);
+				setAppliedScheduleOrder(persistedOrder);
 			} catch {
 				setTasks([]);
+				setAppliedScheduleOrder([]);
 			}
 		} catch (error: any) {
 			toast.error(
@@ -143,6 +227,62 @@ const ProjectDetail = () => {
 			navigate("/dashboard");
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleApplySchedule = async () => {
+		if (!id) return;
+		if (!scheduleResults.recommendedOrder.length) {
+			toast.error("No schedule available to apply.");
+			return;
+		}
+
+		const tasksByTitle = new Map<string, Task>();
+		tasks.forEach((task) => {
+			if (!tasksByTitle.has(task.title)) {
+				tasksByTitle.set(task.title, task);
+			}
+		});
+
+		const uniqueTitles = scheduleResults.recommendedOrder.filter(
+			(title, index, arr) => arr.indexOf(title) === index
+		);
+		const orderUpdates = uniqueTitles
+			.map((title, index) => {
+				const match = tasksByTitle.get(title);
+				if (!match) return null;
+				return { taskId: match.id, order: index };
+			})
+			.filter(
+				(update): update is { taskId: string; order: number } => update !== null
+			);
+
+		if (!orderUpdates.length) {
+			toast.error(
+				"Couldn't align the suggested schedule with current tasks. Please refresh and try again."
+			);
+			return;
+		}
+
+		setSavingSchedule(true);
+		try {
+			await ProjectsAPI.reorderTasks(id, orderUpdates);
+			setAppliedScheduleOrder(orderUpdates.map((update) => update.taskId));
+			toast.success(
+				"Schedule order applied! Task numbers show recommended execution order.",
+				{ duration: 4000 }
+			);
+			setScheduleDialogOpen(false);
+
+			await fetchProjectAndTasks();
+		} catch (error: any) {
+			toast.error(
+				error.response?.data?.error ||
+					error.message ||
+					"Failed to save schedule order"
+			);
+		} finally {
+			setSavingSchedule(false);
 		}
 	};
 
@@ -162,19 +302,18 @@ const ProjectDetail = () => {
 				title: newTaskTitle,
 				description: newTaskDescription || "",
 				dueDate,
-				estimatedHours: newTaskEstimatedHours,
+				estimatedHours: resolveEstimatedHours(newTaskEstimatedHours),
 				dependencies: newTaskDependencies,
 			});
 			toast.success("Task created successfully!");
 			setNewTaskTitle("");
 			setNewTaskDescription("");
-			setNewTaskEstimatedHours(8);
+			setNewTaskEstimatedHours(DEFAULT_ESTIMATED_HOURS);
 			setNewTaskDueDate("");
 			setNewTaskDependencies([]);
 			setDialogOpen(false);
 			// Clear schedule results since a new task was added
 			setScheduleResults({ recommendedOrder: [], detailedSchedule: [] });
-			setAppliedScheduleOrder([]);
 			await fetchProjectAndTasks();
 		} catch (error: any) {
 			toast.error(
@@ -199,7 +338,7 @@ const ProjectDetail = () => {
 				description: originalTask.description || "",
 				status: newStatus,
 				dueDate: originalTask.dueDate || new Date().toISOString(),
-				estimatedHours: originalTask.estimatedHours || 8,
+				estimatedHours: originalTask.estimatedHours ?? DEFAULT_ESTIMATED_HOURS,
 				dependencies: originalTask.dependencies || [],
 				assignedToUserId: originalTask.assignedToUserId || undefined,
 			});
@@ -210,7 +349,6 @@ const ProjectDetail = () => {
 			);
 			// Clear schedule results since task status changed
 			setScheduleResults({ recommendedOrder: [], detailedSchedule: [] });
-			setAppliedScheduleOrder([]);
 			toast.success(
 				newStatus === "Completed"
 					? "Task completed!"
@@ -250,7 +388,7 @@ const ProjectDetail = () => {
 		setEditingTaskId(task.id);
 		setEditTitle(task.title);
 		setEditDescription(task.description || "");
-		setEditEstimatedHours(task.estimatedHours || 8);
+		setEditEstimatedHours(task.estimatedHours ?? DEFAULT_ESTIMATED_HOURS);
 		// Format the due date properly for the date input field (YYYY-MM-DD)
 		const formattedDate = task.dueDate
 			? new Date(task.dueDate).toISOString().split("T")[0]
@@ -274,7 +412,7 @@ const ProjectDetail = () => {
 				dueDate: editDueDate
 					? new Date(editDueDate).toISOString()
 					: originalTask?.dueDate || new Date().toISOString(),
-				estimatedHours: editEstimatedHours,
+				estimatedHours: resolveEstimatedHours(editEstimatedHours),
 				dependencies: editDependencies,
 				assignedToUserId: originalTask?.assignedToUserId || undefined,
 			});
@@ -289,7 +427,7 @@ const ProjectDetail = () => {
 								dueDate: editDueDate
 									? new Date(editDueDate).toISOString()
 									: task.dueDate,
-								estimatedHours: editEstimatedHours,
+								estimatedHours: resolveEstimatedHours(editEstimatedHours),
 								dependencies: editDependencies,
 						  }
 						: task
@@ -323,7 +461,7 @@ const ProjectDetail = () => {
 		setEditingTaskId(null);
 		setEditTitle("");
 		setEditDescription("");
-		setEditEstimatedHours(8);
+		setEditEstimatedHours(DEFAULT_ESTIMATED_HOURS);
 		setEditDueDate("");
 		setEditDependencies([]);
 	};
@@ -569,12 +707,17 @@ const ProjectDetail = () => {
 												min="1"
 												max="200"
 												placeholder="8"
-												value={newTaskEstimatedHours}
-												onChange={(e) =>
-													setNewTaskEstimatedHours(
-														parseInt(e.target.value) || 8
-													)
+												value={
+													newTaskEstimatedHours === ""
+														? ""
+														: newTaskEstimatedHours
 												}
+												onChange={handleEstimatedHoursChange(
+													setNewTaskEstimatedHours
+												)}
+												onBlur={handleEstimatedHoursBlur(
+													setNewTaskEstimatedHours
+												)}
 											/>
 										</div>
 										<div className="space-y-2">
@@ -769,10 +912,25 @@ const ProjectDetail = () => {
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={() => {
-									setAppliedScheduleOrder([]);
-									toast.success("Schedule order cleared");
+								onClick={async () => {
+									if (!id) return;
+									setSavingSchedule(true);
+									try {
+										await ProjectsAPI.reorderTasks(id, []);
+										setAppliedScheduleOrder([]);
+										toast.success("Schedule order cleared");
+										await fetchProjectAndTasks();
+									} catch (error: any) {
+										toast.error(
+											error.response?.data?.error ||
+												error.message ||
+												"Failed to clear schedule order"
+										);
+									} finally {
+										setSavingSchedule(false);
+									}
 								}}
+								disabled={savingSchedule}
 								className="ml-2 text-gray-600 hover:text-red-600 hover:bg-red-50"
 							>
 								<X className="h-4 w-4 mr-1" />
@@ -808,7 +966,7 @@ const ProjectDetail = () => {
 				) : (
 					<>
 						<div className="space-y-3">
-							{tasks.map((task) => (
+							{orderedTasks.map((task) => (
 								<Card
 									key={task.id}
 									className="group bg-gradient-to-br from-white/95 via-slate-50/60 to-pathlock-primary/5 backdrop-blur-sm border-pathlock-primary/20 shadow-md transition-all duration-300 hover:shadow-xl hover:shadow-pathlock-primary/20 hover:border-pathlock-primary/40 hover:-translate-y-2 hover:from-white hover:via-pathlock-primary/5 hover:to-pathlock-secondary/10"
@@ -834,12 +992,17 @@ const ProjectDetail = () => {
 															type="number"
 															min="1"
 															max="200"
-															value={editEstimatedHours}
-															onChange={(e) =>
-																setEditEstimatedHours(
-																	parseInt(e.target.value) || 8
-																)
+															value={
+																editEstimatedHours === ""
+																	? ""
+																	: editEstimatedHours
 															}
+															onChange={handleEstimatedHoursChange(
+																setEditEstimatedHours
+															)}
+															onBlur={handleEstimatedHoursBlur(
+																setEditEstimatedHours
+															)}
 														/>
 													</div>
 													<div className="space-y-1">
@@ -989,13 +1152,13 @@ const ProjectDetail = () => {
 																{task.title}
 															</h3>
 															{appliedScheduleOrder.length > 0 &&
-																appliedScheduleOrder.includes(task.title) && (
+																appliedScheduleOrder.includes(task.id) && (
 																	<div className="relative flex-shrink-0 group">
 																		<div className="relative">
 																			<div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pathlock-accent via-pathlock-accentLight to-pathlock-accent/90 flex items-center justify-center shadow-md hover:shadow-lg transition-all transform hover:scale-105 border border-white/60">
 																				<span className="text-white text-xs font-bold tracking-tight">
 																					{appliedScheduleOrder.indexOf(
-																						task.title
+																						task.id
 																					) + 1}
 																				</span>
 																			</div>
@@ -1005,9 +1168,8 @@ const ProjectDetail = () => {
 																			{/* Tooltip */}
 																			<div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
 																				Schedule #
-																				{appliedScheduleOrder.indexOf(
-																					task.title
-																				) + 1}
+																				{appliedScheduleOrder.indexOf(task.id) +
+																					1}
 																			</div>
 																		</div>
 																	</div>
@@ -1300,17 +1462,20 @@ const ProjectDetail = () => {
 									</Button>
 									<Button
 										className="text-white bg-pathlock-accent hover:bg-pathlock-accentLight shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-										onClick={() => {
-											setAppliedScheduleOrder(scheduleResults.recommendedOrder);
-											toast.success(
-												"Schedule order applied! Task numbers show recommended execution order.",
-												{ duration: 4000 }
-											);
-											setScheduleDialogOpen(false);
-										}}
+										onClick={handleApplySchedule}
+										disabled={savingSchedule}
 									>
-										<Check className="mr-2 h-4 w-4" />
-										Use This Schedule
+										{savingSchedule ? (
+											<span className="flex items-center gap-2">
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												Saving...
+											</span>
+										) : (
+											<>
+												<Check className="mr-2 h-4 w-4" />
+												Use This Schedule
+											</>
+										)}
 									</Button>
 								</div>
 							</DialogContent>

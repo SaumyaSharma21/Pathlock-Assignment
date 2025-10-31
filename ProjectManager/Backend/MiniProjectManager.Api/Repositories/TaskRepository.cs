@@ -29,7 +29,11 @@ namespace MiniProjectManager.Api.Repositories
 
         public async Task<IEnumerable<TaskItem>> GetByProjectIdAsync(Guid projectId)
         {
-            return await _db.Tasks.Where(t => t.ProjectId == projectId).ToListAsync();
+            return await _db.Tasks
+                .Where(t => t.ProjectId == projectId)
+                .OrderBy(t => t.ScheduledOrder ?? int.MaxValue)
+                .ThenBy(t => t.Title)
+                .ToListAsync();
         }
 
         public void Remove(TaskItem task)
